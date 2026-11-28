@@ -93,6 +93,54 @@
   const reportText = [reportTitle, reportInfo, '', 'Canal | Setembro de 2025 | Outubro de 2025',
     ...allRows.map(row => row[0] + ' | ' + money(row[1]) + ' | ' + money(row[2])), '', reportNote].join('\n');
 
+  const levels = [
+    {
+      title: 'Explorador de IA', image: './assets/nivel-01.webp?v=50215e5496ab', block: 'Bloco 01',
+      action: 'Escolha uma das seis demandas e envie o pedido como está. Guarde a resposta e registre uma qualidade ou um problema no Word.',
+      link: '#/biblioteca?trilha=cego', label: 'Escolher uma demanda'
+    },
+    {
+      title: 'Engenheiro de Prompts', image: './assets/nivel-02.webp?v=912ed36f1863', block: 'Bloco 02',
+      action: 'Reescreva o mesmo pedido com contexto, tarefa, formato e restrições. Abra uma conversa nova na mesma ferramenta. Compare a primeira resposta com a anterior e justifique sua avaliação.',
+      link: '#/prompt', label: 'Montar meu CTFR'
+    },
+    {
+      title: 'Analista de IA', image: './assets/nivel-03.webp?v=b312da834049', block: 'Bloco 03',
+      action: 'Escolha Gestão ou Comercial. Guarde o pedido inicial e faça três refinamentos na mesma conversa. Na Batalha, compare as primeiras respostas ao mesmo CTFR em duas ferramentas.',
+      link: '#/biblioteca?trilha=a', label: 'Abrir as trilhas'
+    },
+    {
+      title: 'Detetive Digital', image: './assets/nivel-04.webp?v=58a5d36255c2', block: 'Bloco 04',
+      action: 'Investigue fontes, privacidade, vieses e autoria. Registre dois riscos e uma ação preventiva para sua rotina.',
+      link: '#/referencias', label: 'Consultar as fontes'
+    },
+    {
+      title: 'Guardiões da IA', image: './assets/nivel-05.webp?v=17807ff75617', block: 'Bloco 05',
+      action: 'Anote os nomes da dupla no Word. Uma pessoa reescreve o pedido e a outra confere os riscos e a resposta. Testem apenas o prompt corrigido. Troquem de papel aos 13 min 30 s.',
+      link: '#/prompt', label: 'Montar o prompt corrigido'
+    },
+    {
+      title: 'Consultor de Inovação', image: './assets/nivel-06.webp?v=53fd312b8f27', block: 'Bloco 06',
+      action: 'Após a ficha individual de saída, anote o problema da sua rotina que quer levar para a Aula 2. Salve e feche o caderno para a coleta pelo Net Monitor.',
+      closing: 'Depois que o instrutor confirmar o recebimento, saia das contas e exclua apenas sua cópia da Área de Trabalho. Na Lixeira, remova só esse arquivo.'
+    }
+  ];
+
+  function journey() {
+    const cards = levels.map((level, i) => `<details class="sl-level" name="student-level">
+      <summary><img class="sl-level-art" src="${level.image}" alt="" width="125" height="144" loading="lazy">
+        <span class="sl-level-intro"><span class="sl-level-index">Nível 0${i + 1} · ${i === 5 ? 'Prévia da Aula 2' : 'Aula 1'}</span>
+        <strong>${level.title}</strong><span class="sl-level-block">${level.block} no Word</span></span>
+        <span class="sl-level-toggle">${icon('expand')}</span></summary>
+      <div class="sl-level-body"><p>${level.action}</p>
+        ${level.closing ? `<p><strong>Antes de sair.</strong> ${level.closing}</p>` : ''}
+        ${level.link ? `<a href="${level.link}">${level.label}</a>` : ''}</div></details>`).join('');
+    return `<section class="sl-journey" aria-labelledby="sl-journey-title"><div class="sl-journey-heading">
+      <h2 id="sl-journey-title">Seu percurso no Caderno Digital</h2>
+      <p>Abra um nível para consultar a atividade. Os cinco primeiros acontecem na Aula 1. O Bloco 06 prepara a oficina seguinte.</p></div>
+      <div class="sl-levels">${cards}</div></section>`;
+  }
+
   async function copyText(value) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -173,10 +221,14 @@
               <div id="sl-feedback" class="sl-feedback" role="status" aria-live="polite"></div>
             </div>
           </div>
-          <div class="sl-tools"><h3>Abra sua ferramenta de IA</h3><div>
+          <div class="sl-tools"><h3>Abra sua ferramenta de IA</h3><p>Comece com uma ferramenta. A segunda entra na Batalha das IAs, no slide 21.</p><div>
             <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT ${icon('external')}<span class="sl-sr">, abre em outra aba</span></a>
             <a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Gemini ${icon('external')}<span class="sl-sr">, abre em outra aba</span></a>
           </div></div>
+          <details class="sl-practice"><summary>Como testar este prompt</summary><div>
+            <p><strong>Demonstração do slide 16.</strong> Se faltar informação, peça três perguntas de esclarecimento antes da resposta.</p>
+            <p><strong>Bloco 02.</strong> Teste o CTFR em uma conversa nova na mesma ferramenta. Compare as respostas, confira os fatos e registre o que mudou no Word.</p>
+          </div></details>
         </aside>
       </div>
     </div>`;
@@ -250,19 +302,97 @@
       ${report ? reportMarkup() : ''}<div class="sl-feedback" role="status"></div></article>`;
   }
 
+  const criteria = ['Clareza da resposta', 'Respeito ao formato solicitado', 'Cumprimento das restrições', 'Adequação ao contexto', 'Utilidade prática no trabalho ou na rotina'];
+  const comparisonTools = ['ChatGPT', 'Gemini'];
+  const comparison = { scores: comparisonTools.map(() => Array(criteria.length).fill(0)), result: '' };
+
+  function renderComparison(collection) {
+    const choices = [...comparisonTools, 'Empate'];
+    const totals = () => comparison.scores.map(column => column.every(Boolean) ? column.reduce((a, b) => a + b, 0) : null);
+    const rows = criteria.map((name, r) => {
+      const cells = comparisonTools.map((tool, c) => {
+        const options = [0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${comparison.scores[c][r] === n ? ' selected' : ''}>${n || '—'}</option>`).join('');
+        return `<td><select data-score="${c}-${r}" aria-label="${name}, ${tool}">${options}</select></td>`;
+      }).join('');
+      return `<tr><th scope="row">${name}</th>${cells}</tr>`;
+    }).join('');
+    collection.innerHTML = `<div class="sl-collection-intro"><h2 id="sl-collection-title">Batalha das IAs</h2>
+      <p>Em uma conversa nova de cada ferramenta, cole o mesmo CTFR. Guarde a primeira resposta de cada uma. Se só houver uma ferramenta disponível, use a segunda resposta projetada pelo instrutor.</p></div>
+      <div class="sl-battle"><div class="sl-score-panel"><table><caption>Notas de 1 a 5 por critério</caption>
+        <thead><tr><th scope="col">Critério</th>${comparisonTools.map(tool => `<th scope="col">${tool}</th>`).join('')}</tr></thead><tbody>${rows}</tbody>
+        <tfoot><tr><th scope="row">Total · 5 a 25</th><td data-total="0" aria-live="polite"></td><td data-total="1" aria-live="polite"></td></tr></tfoot></table></div>
+        <aside class="sl-verdict"><fieldset><legend>Qual resposta atende melhor a esta tarefa?</legend>
+          ${choices.map(choice => `<label><input type="radio" name="sl-choice" value="${choice}"${choice === comparison.result ? ' checked' : ''}> ${choice}</label>`).join('')}</fieldset>
+          <p>Copie a comparação para o painel do Bloco 03, no Word. Justifique sua escolha ou o empate com um trecho e o critério que ele ilustra.</p>
+          <div class="sl-score-actions"><button type="button" class="sl-btn sl-btn-light" id="sl-copy-comparison">${icon('copy')}Copiar comparação</button>
+          <button type="button" class="sl-clear" id="sl-clear-comparison">Limpar notas</button></div>
+          <div class="sl-feedback" role="status"></div></aside></div>`;
+    const button = collection.querySelector('#sl-copy-comparison');
+    const clear = collection.querySelector('#sl-clear-comparison');
+    const feedback = collection.querySelector('.sl-feedback');
+    function update() {
+      const values = totals();
+      collection.querySelectorAll('[data-total]').forEach((el, i) => {
+        const count = comparison.scores[i].filter(Boolean).length;
+        el.textContent = values[i] ?? (count ? `${count}/5 notas` : '—');
+      });
+      button.disabled = values.includes(null) || !comparison.result;
+      clear.disabled = !comparison.result && !comparison.scores.some(column => column.some(Boolean));
+      feedback.textContent = '';
+    }
+    collection.querySelectorAll('[data-score]').forEach(select => select.addEventListener('change', () => {
+      const [column, row] = select.dataset.score.split('-').map(Number);
+      comparison.scores[column][row] = Number(select.value);
+      update();
+    }));
+    collection.querySelectorAll('[name="sl-choice"]').forEach(radio => radio.addEventListener('change', () => {
+      comparison.result = radio.value;
+      update();
+    }));
+    function resultText() {
+      const [a, b] = totals();
+      return [
+        'Batalha das IAs — Bloco 03',
+        ...criteria.map((name, i) => `${name}: ChatGPT ${comparison.scores[0][i]} | Gemini ${comparison.scores[1][i]}`),
+        `Total: ChatGPT ${a} | Gemini ${b}`, 'Escolha para a tarefa: ' + comparison.result
+      ].join('\n');
+    }
+    button.addEventListener('click', () => copyWithFeedback(button, resultText(), feedback, resultText));
+    clear.addEventListener('click', () => {
+      comparison.scores.forEach(column => column.fill(0));
+      comparison.result = '';
+      collection.querySelectorAll('[data-score]').forEach(select => { select.value = '0'; });
+      collection.querySelectorAll('[name="sl-choice"]').forEach(radio => { radio.checked = false; });
+      update();
+      feedback.textContent = 'Notas e escolha limpas.';
+      collection.querySelector('[data-score]').focus();
+    });
+    update();
+  }
+
+  function initialLibraryGroup() {
+    const query = location.hash.startsWith('#/') ? location.hash.split('?')[1] : location.search;
+    const group = new URLSearchParams(query).get('trilha');
+    return ['a', 'b', 'batalha'].includes(group) ? group : 'cego';
+  }
+
   function renderLibrary(root) {
     root.innerHTML = `<div class="sl-page"><header class="sl-heading"><h1>Biblioteca de Copiar Rápido</h1>
-      <p>Escolha a atividade da aula e copie um comando por vez.</p></header>
-      <div class="sl-lib-filters" role="group" aria-label="Atividade"><button type="button" data-group="cego" aria-pressed="true">Desafio Prompt Cego</button><button type="button" data-group="a" aria-pressed="false">Trilha A · Gestão</button><button type="button" data-group="b" aria-pressed="false">Trilha B · Comercial</button></div>
+      <p>Escolha a demanda inicial, refine o pedido da sua trilha ou compare as respostas da Batalha.</p></header>
+      <div class="sl-lib-filters" role="group" aria-label="Atividade"><button type="button" data-group="cego" aria-pressed="true">Desafio Prompt Cego</button><button type="button" data-group="a" aria-pressed="false">Trilha A · Gestão</button><button type="button" data-group="b" aria-pressed="false">Trilha B · Comercial</button><button type="button" data-group="batalha" aria-pressed="false">Batalha das IAs</button></div>
       <section id="sl-collection" aria-labelledby="sl-collection-title"></section></div>`;
     const collection = root.querySelector('#sl-collection');
     const groupButtons = [...root.querySelectorAll('[data-group]')];
     function show(group) {
       groupButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.group === group)));
+      if (group === 'batalha') {
+        renderComparison(collection);
+        return;
+      }
       const values = { report: reportText };
       let cards = '';
       let title = 'Desafio Prompt Cego';
-      let guide = 'Slide 07 · Escolha a demanda mais próxima da sua realidade.';
+      let guide = 'Slide 07 · Escolha uma demanda e envie o texto como está em uma ferramenta. Registre o pedido, a resposta e sua observação no Bloco 01 do Word.';
       if (group === 'cego') {
         cards = blindCards.map(([name, content, shape], i) => {
           values[i] = content;
@@ -271,7 +401,7 @@
       } else {
         const track = tracks[group];
         title = track.title;
-        guide = 'Slide 19 · Monte o comando inicial com CTFR em uma conversa nova. Slide 20 · Faça os três refinamentos nessa conversa. Após cada rodada, confira se a resposta mantém as restrições do comando.';
+        guide = 'Slide 19 · Abra uma conversa nova e monte seu CTFR a partir da tarefa. Guarde a primeira versão. Slide 20 · Faça os três refinamentos nessa mesma conversa. Após cada rodada, confira o formato e as restrições e registre o que melhorou no Bloco 03.';
         values.start = track.start;
         cards = libraryCard('Slide 19', 'Comando inicial', track.start, track.icon, 'start');
         cards += track.rounds.map((content, i) => {
@@ -285,10 +415,11 @@
       });
     }
     groupButtons.forEach(button => button.addEventListener('click', () => show(button.dataset.group)));
-    show('cego');
+    show(initialLibraryGroup());
   }
 
   window.Student = {
+    journey,
     render(page, root) {
       if (page === 'prompt') renderPrompt(root);
       if (page === 'biblioteca') renderLibrary(root);
@@ -326,21 +457,21 @@
   }
 
   const activities = [
-    {id:'08', slide:'08', name:'Desafio Prompt Cego', min:10},
-    {id:'18', slide:'18', name:'Antes e depois do CTFR', min:10},
-    {id:'19', slide:'19', name:'Laboratório de reescrita', min:13},
-    {id:'20', slide:'20', name:'Rodadas de refinamento', min:12},
-    {id:'21', slide:'21', name:'Batalha das IAs', min:6},
-    {id:'intervalo', slide:'', name:'Intervalo', min:10},
-    {id:'35', slide:'35', name:'Guardiões da IA', min:27},
-    {id:'38', slide:'38', name:'Desafio individual de saída', min:5}
+    {id:'08', slide:'08', name:'Desafio Prompt Cego', min:10, task:'Registre no Bloco 01 o primeiro prompt e uma qualidade ou um problema da resposta.'},
+    {id:'18', slide:'18', name:'Antes e depois do CTFR', min:10, task:'Compare no Bloco 02 a mesma demanda, na mesma ferramenta, em conversa nova. Some os cinco critérios de cada resposta (5 a 25). Encerre a Ação Inicial no minuto 90.'},
+    {id:'19', slide:'19', name:'Laboratório de reescrita', min:13, task:'No Nível 03 do Caderno Digital, escolha Gestão ou Comercial e comece a reescrita em conversa nova.'},
+    {id:'20', slide:'20', name:'Rodadas de refinamento', min:12, task:'Use a mesma conversa nas três rodadas. Confira formato e restrições a cada resposta. Na trilha comercial, a versão para WhatsApp é uma entrega adicional à proposta original.'},
+    {id:'21', slide:'21', name:'Batalha das IAs', min:6, task:'Em conversas novas, use o mesmo CTFR no ChatGPT e no Gemini. Avalie as duas respostas de 5 a 25 e justifique a escolha ou o empate.'},
+    {id:'intervalo', slide:'22', name:'Intervalo', min:10, task:'Combine o horário de retorno. Confirme com a unidade se o intervalo integra as quatro horas.'},
+    {id:'35', slide:'35', name:'Guardiões da IA', min:27, task:'No Bloco 05, registrem os nomes e os papéis. Por missão, entreguem quatro justificativas, o CTFR corrigido e a conferência humana. Testem na IA apenas o prompt corrigido.'},
+    {id:'38', slide:'38', name:'Desafio individual de saída', min:5, task:'Na ficha de saída, escreva seu CTFR e dois cuidados para aplicá-lo. Salve o Word. O Bloco 06 vem no slide 39, antes da coleta via Net Monitor.'}
   ];
 
   const resources = [
     ['galeria','image','Humano ou IA?','Vote e revele a origem de cada exemplo.','02'],
-    ['banco','text','Eu fui ao banco para…','Explore como o contexto muda a próxima palavra.','12'],
-    ['detetive','search','Detetive Digital','Investigue fontes, privacidade, vieses e autoria.','25–28'],
-    ['guardioes','shield','Guardiões da IA','Revele os gabaritos comentados das missões.','36'],
+    ['banco','text','Eu fui ao banco para…','Compare duas continuações com a turma.','12'],
+    ['detetive','search','Detetive Digital','Investigue fontes, privacidade, vieses e autoria.','24–28'],
+    ['guardioes','shield','Guardiões da IA','Ouça a dupla e revele o comentário da missão.','30–36'],
     ['referencias','book','Referências verificadas','Consulte as fontes usadas na aula.','']
   ];
 
@@ -421,16 +552,24 @@
       (intro ? '<p>' + intro + '</p>' : '') + '</header>' + content + '</section>';
   }
 
+  function activityShell(title, level, image, action, content) {
+    return '<section class="il-page"><div class="il-tools">' + back + fullscreenButton() + '</div>' +
+      '<header class="il-activity-banner"><div class="il-feature-copy"><div class="il-kicker">' + level + '</div><h1>' + title + '</h1>' + action +
+      '</div><img src="' + image + '" alt=""></header>' + content + '</section>';
+  }
+
   function landing(root) {
     const schedule = activities.map(a =>
       '<a class="il-schedule-row" href="#/timer/' + a.min + '?a=' + a.id + '"><span class="il-min"><b>' + a.min + '</b> min</span><span class="il-row-label"><strong>' + a.name + '</strong><small>' + (a.slide ? 'Slide ' + a.slide : 'Pausa da turma') + '</small></span>' + icon('chevron') + '</a>'
     ).join('');
     const modules = resources.map(([path, mark, title, desc, slide]) =>
-      '<a class="il-resource" href="#/' + path + '"><span class="il-mark">' + icon(mark) + '</span><span class="il-row-label"><strong>' + title + '</strong><span>' + desc + '</span></span>' + icon('chevron') + '</a>'
+      '<a class="il-resource" href="#/' + path + '"><span class="il-mark">' + icon(mark) + '</span><span class="il-row-label"><strong>' + title + '</strong><span>' + (slide ? 'Slide ' + slide + ' · ' : '') + desc + '</span></span>' + icon('chevron') + '</a>'
     ).join('');
     root.innerHTML = '<section class="il-page"><div class="il-hero"><div class="il-hero-content"><div class="il-kicker"><i></i> Projeção em sala</div><h1>Central do Instrutor</h1><p>Conduza a aula com cronômetros, dinâmicas e gabaritos para projetar.</p>' + fullscreenButton() + '</div><div class="il-clock-art" aria-hidden="true"><div class="il-dial"><i></i><b></b><em></em></div></div></div>' +
-      '<div class="il-columns"><section><div class="il-section-head"><span class="il-section-icon">' + icon('clock') + '</span><h2>Cronograma da aula</h2></div><div class="il-list">' + schedule + '</div></section>' +
-      '<section><div class="il-section-head"><span class="il-section-icon">' + icon('layers') + '</span><h2>Dinâmicas e materiais</h2></div><div class="il-list">' + modules + '</div></section></div></section>';
+      '<div class="il-checkpoints" aria-label="Marcos da aula"><div><strong>0–90 min</strong><span>Ação Inicial · slides 01–18</span></div><div><strong>90–180 min</strong><span>Reflexão · slides 19–29</span></div><div><strong>180–240 min</strong><span>Ação Final · slides 30–40</span></div></div>' +
+      '<div class="il-columns"><section><div class="il-section-head"><span class="il-section-icon">' + icon('clock') + '</span><h2>Cronômetros da aula</h2></div><div class="il-list">' + schedule + '</div></section>' +
+      '<section><div class="il-section-head"><span class="il-section-icon">' + icon('layers') + '</span><h2>Dinâmicas e materiais</h2></div><div class="il-list">' + modules + '</div>' +
+      '<details class="il-details il-lab-guide"><summary>Roteiro do laboratório e Net Monitor</summary><div><p><strong>Slide 05.</strong> Envie Caderno_Digital_Aluno_Aula_01_IA.docx para a Área de Trabalho pelo Net Monitor. Cada estudante salva sua cópia como Caderno_IA_SeuNome.docx. Demonstre Windows + Seta Esquerda no navegador e Windows + Seta Direita no Word.</p><p><strong>Slides 18 e 22.</strong> Encerre a Ação Inicial aos 90 min. Se houver atraso, compare com dois voluntários. O roteiro inclui o intervalo de 10 min no slide 22. Confirme com a unidade se a pausa integra as quatro horas.</p><p><strong>Slide 29.</strong> Proteja os 60 minutos finais. Se precisar, encurte o mini-teste de vieses do slide 27 com o exemplo pronto.</p><p><strong>Slides 38–40.</strong> Prepare a coleta no 38. Depois do Bloco 06 no 39, recolha Caderno_IA_*.docx pelo Net Monitor e confira cada entrega. No 40, peça logout das contas e exclusão somente da cópia pessoal recebida, inclusive na Lixeira. Reiniciar a estação não garante logout. O checklist de bolso está na <a href="#/biblioteca">Biblioteca</a>.</p></div></details></section></div></section>';
   }
 
   function timer(root, minutes, id) {
@@ -442,7 +581,9 @@
       '<div class="il-digits" role="timer" aria-label="Tempo restante" aria-live="off"></div>' +
       '<div class="il-meter" aria-hidden="true"><i></i></div><div class="il-timer-controls">' +
       '<button class="il-btn il-primary" type="button" data-toggle></button><button class="il-btn il-outline" data-reset type="button">' + icon('reset') + 'Reiniciar</button></div>' +
-      (minutes === 27 ? '<p class="il-role-note">' + icon('group') + 'Troca de papéis aos 13min30s.</p>' : '') + '</div>');
+      (minutes === 27 ? '<p class="il-role-note">' + icon('group') + '<span data-role-note></span></p>' : '') + '</div>' +
+      (activity ? '<aside class="il-timer-task"><h2>Caderno e condução</h2><p>' + activity.task + '</p>' +
+        (activity.id === '35' ? '<p>Na primeira missão, A reescreve e B audita. Na segunda, invertam os papéis. Na terceira, trabalhem juntos. Com turma iniciante, completem duas missões e resolvam a terceira com a turma no slide 36.</p>' : '') + '</aside>' : ''));
     const total = minutes * 60000;
     const box = root.querySelector('.il-timer');
     const digits = box.querySelector('.il-digits');
@@ -469,8 +610,13 @@
       box.classList.toggle('il-swap',swap);
       fill.style.width = (remaining / total * 100) + '%';
       const messages = {ready:'Pronto para começar', paused:'Pausado', done:'Tempo encerrado'};
-      const note = [messages[state], swap ? 'Troquem os papéis de engenheiro e auditor' : last ? 'Último minuto' : ''].filter(Boolean).join(' · ') || 'Em andamento';
+      const note = [messages[state], swap ? 'Hora de inverter os papéis!' : last ? 'Último minuto' : ''].filter(Boolean).join(' · ') || 'Em andamento';
       if (status.textContent !== note) status.textContent = note;
+      if (minutes === 27) {
+        const role = box.querySelector('[data-role-note]');
+        const cue = remaining > total / 2 ? 'A é engenheiro, B é auditor. Invertam aos 13min30s.' : 'Após a inversão, B é engenheiro e A é auditor. Façam a terceira missão juntos.';
+        if (role.textContent !== cue) role.textContent = cue;
+      }
       const label = state === 'running' ? 'Pausar' : state === 'paused' ? 'Continuar' : 'Iniciar';
       if (toggle.dataset.label !== label) {
         toggle.innerHTML = icon(state === 'running' ? 'pause' : 'play') + label;
@@ -498,39 +644,121 @@
   }
 
   const galleryItems = [
-    {label:'Imagem A', src:'./assets/galeria-a.webp', alt:'Artesã ceramista trabalhando em seu ateliê.'},
-    {label:'Imagem B', src:'./assets/galeria-b.webp', alt:'Banca de laranjas em uma feira.'},
-    {label:'Mensagem comercial', text:'Olá! O modelo que você procurou voltou ao estoque. Quer que eu confirme as cores disponíveis antes de você vir à loja?'}
+    {letter:'A', src:'./assets/galeria-a.webp?v=39375bbb7fcb', alt:'Ceramista no ateliê, com peças e prateleiras ao fundo.', step:1, origin:'Gerada por IA'},
+    {letter:'B', src:'./assets/galeria-b.webp?v=8d0d5baeb236', alt:'Banca de laranjas sob um toldo de feira.', step:2, origin:'Gerada por IA'},
+    {letter:'C', src:'./assets/galeria-c.webp?v=52042e6112ae', alt:'Mãos modelando argila em um torno visto de cima.', step:3, origin:'Fotografia · Chandan Singh'},
+    {letter:'D', src:'./assets/galeria-d.webp?v=4eb410d93c98', alt:'Laranjas verdes e amarelas vistas de perto.', step:3, origin:'Fotografia · Wilfredor'}
+  ];
+  const gallerySteps = [
+    {button:'Revelar A', status:'Votação aberta'},
+    {button:'Revelar B', status:'1 de 4 · A foi gerada por IA.'},
+    {button:'Revelar C, D e E', status:'2 de 4 · B também foi gerada por IA.'},
+    {button:'Revelar conclusão', status:'3 de 4 · C e D são fotografias. E foi escrito com IA.'},
+    {button:'Concluído', status:'4 de 4 · Conclusão revelada.'}
   ];
 
   function gallery(root) {
-    root.innerHTML = shell('Humano ou IA?', 'Slide 02',
-      '<div class="il-choices" aria-label="Escolha do exemplo">' + galleryItems.map((o,i) => '<button type="button" class="il-chip" data-example="' + i + '" aria-pressed="' + (i === 0) + '">' + o.label + '</button>').join('') + '</div>' +
-      '<div class="il-gallery"><div class="il-visual" aria-live="polite"></div><section class="il-vote"><div class="il-kicker">Votação da turma</div><h2>Qual é a sua hipótese?</h2><p>Peça um voto por pessoa, por mãos levantadas. Selecione a hipótese mais votada.</p><div class="il-vote-options">' +
-      ['Produzido por humano','Gerado por IA','Não é possível determinar apenas observando'].map((v,i) => '<button type="button" data-vote="' + i + '" aria-pressed="false"><span class="il-radio"></span>' + v + '</button>').join('') + '</div><button type="button" class="il-btn il-primary" data-reveal aria-expanded="false" aria-controls="il-origins">' + icon('eye') + 'Revelar origens</button></section></div>' +
-      '<div id="il-origins" class="il-answer" hidden><h2>As duas imagens foram geradas por IA.</h2><p>O slide original reservava espaço para dois exemplos. A ceramista e a banca de laranjas foram geradas por IA para esta versão da dinâmica. A mensagem comercial é um exemplo fictício escrito com IA para a aula.</p><strong>A aparência convincente de um conteúdo não comprova sua origem, autenticidade ou veracidade.</strong></div>');
-    let current = 0;
-    const votes = [null,null,null];
-    const visual = root.querySelector('.il-visual');
-    const select = [...root.querySelectorAll('[data-example]')];
-    const buttons = [...root.querySelectorAll('[data-vote]')];
+    const tiles = galleryItems.map(item => `
+      <figure class="il-gallery-tile" aria-label="Imagem ${item.letter}">
+        <img src="${item.src}" alt="${item.alt}" width="1440" height="597">
+        <figcaption><b class="il-gallery-letter">${item.letter}</b>
+          <span class="il-gallery-origin" data-origin="${item.letter}" data-step="${item.step}" hidden>${item.origin}</span>
+        </figcaption>
+      </figure>`).join('');
+    const votes = ['A','B','C','D','E'].map(letter => `
+      <label>${letter === 'E' ? 'Texto' : 'Imagem'} ${letter}
+        <select data-vote="${letter}">
+          <option value="">Sem registro</option><option>Humano</option><option>IA</option><option>Não dá para saber</option>
+        </select>
+      </label>`).join('');
+    root.innerHTML = `
+      <section class="il-page il-gallery-page">
+        <div class="il-tools">${back}${fullscreenButton()}</div>
+        <div class="il-gallery-head">
+          <header class="il-header"><div class="il-kicker">Slide 02</div><h1>Humano ou IA?</h1>
+            <p>Vote em cada exemplo: humano, IA ou não dá para saber.</p>
+          </header>
+          <div class="il-gallery-controls">
+            <button class="il-btn il-primary" type="button" data-reveal aria-controls="il-gallery-content">${icon('eye')}<span>Revelar A</span></button>
+            <button class="il-btn il-outline" type="button" data-gallery-reset>${icon('reset')}Reiniciar</button>
+            <span class="il-gallery-status" role="status" data-gallery-status>Votação aberta</span>
+          </div>
+        </div>
+        <div id="il-gallery-content">
+          <div class="il-gallery-wall">${tiles}</div>
+          <div class="il-gallery-message"><b class="il-gallery-letter" aria-label="Texto E">E</b>
+            <blockquote>“Olá! O modelo que você procurou voltou ao estoque. Quer que eu confirme as cores disponíveis antes de você vir à loja?”</blockquote>
+            <span class="il-gallery-text-origin" data-origin="E" data-step="3" hidden>Texto de IA</span>
+          </div>
+          <p id="il-origins" class="il-gallery-conclusion" data-step="4" hidden>A aparência convincente de um conteúdo não comprova sua origem, autenticidade ou veracidade.</p>
+        </div>
+        <details class="il-gallery-votes" data-gallery-votes>
+          <summary>Hipóteses da turma</summary>
+          <p>Registre a hipótese mais votada por letra antes de revelar as origens.</p><div>${votes}</div>
+        </details>
+        <section class="il-gallery-credits" data-step="3" hidden aria-label="Créditos das fotografias">
+          <h2>Créditos das fotografias</h2>
+          <p><b>C</b> · Chandan Singh, <a href="https://commons.wikimedia.org/wiki/File:Potter_wheel_(4268605790).jpg" target="_blank" rel="noopener noreferrer" lang="en">Potter wheel</a> (2009). Recorte sob <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener noreferrer">CC BY 2.0</a>.</p>
+          <p><b>D</b> · Wilfredor, <a href="https://commons.wikimedia.org/wiki/File:Oranges_of_Sa%C3%BAde_flea_market,_S%C3%A3o_Paulo,_Brazil.jpg" target="_blank" rel="noopener noreferrer" lang="en">Oranges of Saúde flea market, São Paulo, Brazil</a> (2017). Recorte sob <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>.</p>
+        </section>
+      </section>`;
+    let step = 0;
     const reveal = root.querySelector('[data-reveal]');
-    function paint() {
-      const item = galleryItems[current];
-      visual.innerHTML = item.src ? '<img src="' + item.src + '" alt="' + item.alt + '">' :
-        '<div class="il-message">' + icon('mail') + '<blockquote>“' + item.text + '”</blockquote></div>';
-      select.forEach((b,i) => b.setAttribute('aria-pressed',String(i === current)));
-      buttons.forEach((b,i) => b.setAttribute('aria-pressed',String(votes[current] === i)));
+    const reset = root.querySelector('[data-gallery-reset]');
+    const votePanel = root.querySelector('[data-gallery-votes]');
+    const choices = [...votePanel.querySelectorAll('select')];
+    const answers = [...root.querySelectorAll('[data-step]')];
+    const status = root.querySelector('[data-gallery-status]');
+    function showStep() {
+      answers.forEach(answer => { answer.hidden = Number(answer.dataset.step) > step; });
+      choices.forEach(choice => { choice.disabled = step !== 0; });
+      reveal.querySelector('span').textContent = gallerySteps[step].button;
+      reveal.disabled = step === gallerySteps.length - 1;
+      status.textContent = gallerySteps[step].status;
     }
-    select.forEach((b,i) => b.onclick = () => { current = i; paint(); });
-    buttons.forEach((b,i) => b.onclick = () => { votes[current] = i; buttons.forEach((e,j) => e.setAttribute('aria-pressed',String(i === j))); });
     reveal.onclick = () => {
-      const answer = root.querySelector('#il-origins');
-      answer.hidden = !answer.hidden;
-      reveal.setAttribute('aria-expanded',String(!answer.hidden));
-      reveal.innerHTML = icon('eye') + (answer.hidden ? 'Revelar origens' : 'Ocultar origens');
-      if (!answer.hidden) answer.scrollIntoView({block:'nearest'});
+      if (step === 0) votePanel.open = false;
+      if (step < gallerySteps.length - 1) step++;
+      showStep();
+      if (reveal.disabled) reset.focus({preventScroll:true});
     };
+    reset.onclick = () => {
+      step = 0;
+      choices.forEach(choice => { choice.selectedIndex = 0; });
+      votePanel.open = false;
+      showStep();
+      reveal.focus({preventScroll:true});
+    };
+  }
+
+  function projectionControls() {
+    return '<div class="il-projection-controls"><button type="button" class="il-btn il-primary" data-next></button><button type="button" class="il-btn il-outline" data-previous>Voltar uma etapa</button><span class="il-stage-status" role="status"></span></div>';
+  }
+
+  function wireProjection(panel, labels) {
+    const next = panel.querySelector('[data-next]');
+    const previous = panel.querySelector('[data-previous]');
+    const status = panel.querySelector('[role="status"]');
+    const staged = [...panel.querySelectorAll('[data-stage]')];
+    staged.forEach((element, index) => {
+      if (!element.id) element.id = panel.id + '-passo-' + index;
+    });
+    const ids = staged.map(element => element.id).join(' ');
+    next.setAttribute('aria-controls', ids);
+    previous.setAttribute('aria-controls', ids);
+    let step = 0;
+    function paint() {
+      staged.forEach(element => {
+        element.hidden = Number(element.dataset.stage) > step;
+        if (element.hidden) element.querySelectorAll('details[open]').forEach(detail => { detail.open = false; });
+      });
+      panel.dataset.currentStep = step;
+      previous.disabled = step === 0;
+      next.textContent = step === labels.length ? 'Recomeçar' : labels[step];
+      status.textContent = 'Etapa ' + step + ' de ' + labels.length;
+    }
+    next.onclick = () => { step = step === labels.length ? 0 : step + 1; paint(); };
+    previous.onclick = () => { step = Math.max(0, step - 1); paint(); if (!step) next.focus(); };
     paint();
   }
 
@@ -539,86 +767,104 @@
       {name:'FINANÇAS', endings:['sacar dinheiro','pagar uma conta','falar com o gerente']},
       {name:'PRAÇA', endings:['me sentar','descansar','conversar']}
     ];
-    root.innerHTML = '<section class="il-page"><div class="il-tools">' + back + fullscreenButton() + '</div><section class="il-bank"><h1>Eu fui ao banco para<span>...</span></h1><div class="il-bank-controls">' +
-      contexts.map((x,i) => '<button class="il-btn il-outline" type="button" aria-expanded="false" aria-controls="il-context-' + i + '" data-context="' + i + '">Revelar contexto ' + (i+1) + '</button>').join('') +
-      '</div><div class="il-contexts">' + contexts.map((x,i) => '<section class="il-context" id="il-context-' + i + '" hidden><div class="il-kicker">Contexto ' + (i+1) + '</div><h2>' + x.name + '</h2><ul>' +
-        x.endings.map((e,j) => '<li>…' + e + '<span class="il-bar" aria-hidden="true"><i style="width:' + [80,59,32][j] + '%"></i></span></li>').join('') + '</ul><small>ilustração didática (não são probabilidades reais)</small></section>').join('') + '</div></section></section>';
-    root.querySelectorAll('[data-context]').forEach((b,i) => {
-      b.onclick = () => {
-        const panel = root.querySelector('#il-context-' + i);
-        panel.hidden = !panel.hidden;
-        b.setAttribute('aria-expanded',String(!panel.hidden));
-        b.textContent = (panel.hidden ? 'Revelar' : 'Ocultar') + ' contexto ' + (i+1);
-      };
-    });
+    const cards = contexts.map((context, i) =>
+      '<section class="il-context" data-stage="' + (i+1) + '" hidden><div class="il-kicker">Contexto ' + (i+1) + '</div><h2>' + context.name + '</h2><ul>' +
+      context.endings.map((ending, j) => '<li>…' + ending + '<span class="il-bar" aria-hidden="true"><i style="width:' + [80,59,32][j] + '%"></i></span></li>').join('') +
+      '</ul><small>Ilustração didática. As barras não representam probabilidades medidas.</small></section>').join('');
+    root.innerHTML = '<section class="il-page"><div class="il-tools">' + back + fullscreenButton() + '</div><section class="il-bank" id="il-bank">' +
+      '<div class="il-kicker">Slide 12 · 1. Sem contexto</div><h1>Eu fui ao banco para<span>...</span></h1>' + projectionControls() +
+      '<div class="il-contexts">' + cards + '</div><div class="il-didactic-note" data-stage="3" hidden><strong>Nota didática</strong><p>O contexto muda as continuações plausíveis. As barras ilustram o exercício.</p></div></section></section>';
+    wireProjection(root.querySelector('#il-bank'), ['Revelar contexto 1','Revelar contexto 2','Revelar nota didática']);
   }
 
   const suspects = [
-    ['Instituto Nacional de Produtividade Digital','Instituto fictício','Procure o órgão em registros e canais institucionais. Neste exercício, o nome foi inventado.'],
-    ['2026','Data do relatório','Localize a publicação original e confira sua data. Um ano citado sozinho não comprova que o relatório existe.'],
-    ['78%','Percentual sem evidência','Busque a amostra, o período, a metodologia e o indicador medido. O percentual e o resultado foram inventados para a atividade.']
+    ['Instituto','Quem publicou?','Procure o órgão em canais institucionais. O instituto foi inventado para o exercício.'],
+    ['2026','Onde está o relatório?','Localize a publicação original e confira sua data.'],
+    ['78% em 30 dias','Como foi medido?','Busque a amostra, o período e a metodologia. A estatística foi inventada para a atividade.']
   ];
   const privacy = [
-    ['A','Nome completo e CPF do cliente','Proteger','Identificam a pessoa. Substitua todo o cenário por dados fictícios.'],
-    ['B','Tipo genérico de produto','Pode usar no exercício','Uma categoria genérica, como “caderno”, pode ser usada sem identificar cliente ou informação interna.'],
-    ['C','Senha do sistema interno','Proteger','Credenciais permitem acesso ao sistema. Exclua a senha de qualquer texto de exemplo.'],
-    ['D','Quantidade genérica de itens','Pode usar no exercício','Uma quantidade inventada, como três itens, atende à atividade. Evite associá-la a pedidos ou clientes reais.'],
-    ['E','Número de cartão bancário','Proteger','Dados financeiros expõem a pessoa a fraude. Remova o número antes de escrever.'],
-    ['F','Diagnóstico médico de um funcionário','Proteger','Dados de saúde são dados pessoais sensíveis. Use um cenário fictício sem diagnóstico identificável.'],
-    ['G','Tom de voz desejado para o e-mail','Pode usar no exercício','“Cordial e objetivo” orienta a escrita e dispensa qualquer dado de cliente.']
+    ['A','Nome completo e CPF do cliente','Não enviar','Identificam a pessoa. Use um cenário inteiramente fictício.'],
+    ['B','Tipo genérico de produto','Avaliar o contexto','Uma categoria genérica pode servir ao exercício. Confira se está associada a informações internas.'],
+    ['C','Senha do sistema interno','Não enviar','Exclua credenciais de qualquer texto de exemplo.'],
+    ['D','Quantidade genérica de itens','Avaliar o contexto','Prefira uma quantidade inventada e desvinculada de pedidos ou clientes reais.'],
+    ['E','Número de cartão bancário','Não enviar','Remova dados financeiros antes de escrever o comando.'],
+    ['F','Diagnóstico médico de funcionário','Não enviar','Informações de saúde são dados pessoais sensíveis.'],
+    ['G','Tom de voz desejado para o e-mail','Avaliar o contexto','Um tom como “cordial” dispensa dados de clientes. Confira a política institucional.']
   ];
 
+  function sourceLink(url, text) {
+    return '<a class="il-link" href="' + url + '" target="_blank" rel="noreferrer">' + text + '</a>';
+  }
+
+  function documented(stage, title, copy, links) {
+    return '<div class="il-documented" data-stage="' + stage + '" hidden><div class="il-kicker">' + icon('book') + ' Caso real documentado</div><h3>' + title + '</h3><p>' + copy + '</p><div class="il-source-links">' + links + '</div></div>';
+  }
+
   function detector(root) {
-    const clue = i => '<button type="button" class="il-clue" data-toggle-answer="il-proof-' + i + '" aria-controls="il-proof-' + i + '" aria-expanded="false">' + suspects[i][0] + '</button>';
-    const hallucination = '<div class="il-case"><div class="il-kicker">Cenário Didático Fictício</div><h2>O que precisa de validação?</h2><p>Selecione as pistas na afirmação.</p><blockquote>“Segundo o ' + clue(0) + ', em seu relatório de ' + clue(1) + ', empresas que utilizam IA aumentam suas vendas em ' + clue(2) + ' nos primeiros 30 dias.”</blockquote>' +
-      suspects.map((x,i) => '<div id="il-proof-' + i + '" class="il-explain" hidden><strong>' + x[1] + '</strong><p>' + x[2] + '</p></div>').join('') + '</div>' +
-      '<div class="il-documented"><div class="il-kicker">' + icon('book') + ' Caso Real Documentado</div><h3>Mata v. Avianca, Inc. · 2023</h3><p>Advogados apresentaram decisões judiciais inexistentes citadas por uma IA. Em 22 de junho de 2023, a Justiça federal dos EUA aplicou sanções.</p><a href="#/referencias">Consultar a decisão judicial ' + icon('arrow') + '</a></div>';
-    const privacyPanel = '<div class="il-case"><div class="il-kicker">Privacidade e LGPD</div><h2>O que pode entrar em uma IA pública?</h2><p>Discuta cada item com a turma. Selecione-o para revelar o gabarito.</p><div class="il-privacy">' +
-      privacy.map(([letter,label,risk,reason]) => '<div><button type="button" class="il-data" data-toggle-answer="il-data-' + letter + '" aria-expanded="false" aria-controls="il-data-' + letter + '"><b>[' + letter + ']</b>' + label + icon('chevron') + '</button><div class="il-explain" id="il-data-' + letter + '" hidden><strong>' + risk + '</strong><p>' + reason + '</p></div></div>').join('') +
-      '</div><p class="il-reminder"><strong>Até o uso de dados genéricos depende do contexto e da política da instituição.</strong> Combinações de cargo, data, empresa e valores podem identificar uma pessoa. Use dados inteiramente fictícios no exercício.</p></div>' +
-      '<div class="il-documented"><div class="il-kicker">' + icon('book') + ' Caso Real Documentado</div><h3>Samsung · 2023</h3><p>A empresa restringiu o uso de ferramentas de IA generativa após o envio de código interno a um serviço externo.</p><a href="#/referencias">Consultar fontes e LGPD ' + icon('arrow') + '</a></div>';
-    const bias = '<div class="il-case"><div class="il-kicker">Vieses</div><h2>De onde vêm os estereótipos?</h2><p>Peça à IA que descreva um dia típico de quem trabalha em liderança executiva e em enfermagem, sem indicar gênero ou idade. Que suposições aparecem?</p><ol class="il-flow">' +
-      ['Dados históricos desiguais','Treinamento do modelo','Risco de decisão enviesada','Revisão humana'].map((s,i) => '<li style="--il-step:' + i + '"><b>' + (i+1) + '</b>' + s + '</li>').join('') +
-      '</ol><details class="il-details"><summary>Se a resposta ao vivo vier neutra</summary><div><strong>Dois exemplos fictícios para a discussão</strong><p>“O executivo prepara a estratégia enquanto a enfermeira acolhe a família.” A frase atribui gênero a cada profissão sem informação que sustente a escolha.</p><p>“A pessoa mais jovem deve cuidar de toda a tecnologia.” Que competência foi presumida pela idade? Peça uma reescrita com responsabilidades e habilidades observáveis.</p></div></details></div>' +
-      '<div class="il-documented"><div class="il-kicker">' + icon('book') + ' Caso Real Documentado</div><h3>Amazon · 2018</h3><p>Uma ferramenta experimental de recrutamento reproduziu padrões de currículos históricos e penalizou referências a mulheres. A empresa abandonou o projeto.</p><a href="#/referencias">Consultar a reportagem da Reuters ' + icon('arrow') + '</a></div>';
-    const ethics = '<div class="il-case"><div class="il-kicker">Ética e autoria</div><h2>Antes de publicar</h2><ol class="il-checks"><li><strong>Confira a licença.</strong><span>Identifique as obras de terceiros e verifique as permissões para o uso pretendido, inclusive comercial.</span></li><li><strong>Faça a revisão humana.</strong><span>Confira dados, citações e possíveis vieses. Decida como informar a participação da IA.</span></li><li><strong>Consulte a política da organização.</strong><span>Confirme quais ferramentas e ambientes a instituição autoriza para a tarefa.</span></li></ol><a class="il-link" href="#/referencias">Consultar a Lei de Direitos Autorais e o guia da UNESCO ' + icon('arrow') + '</a></div>';
-    const panels = [hallucination,privacyPanel,bias,ethics];
-    const labels = ['Alucinações','Privacidade','Vieses','Ética e autoria'];
-    root.innerHTML = shell('Detetive Digital','Slides 25 a 28',
-      '<div class="il-choices" aria-label="Temas da investigação">' + labels.map((l,i) => '<button type="button" class="il-chip" aria-pressed="' + (i === 0) + '" aria-controls="il-topic-' + i + '" data-topic="' + i + '">' + l + '</button>').join('') + '</div>' +
-      panels.map((p,i) => '<section class="il-panel" id="il-topic-' + i + '"' + (i?' hidden':'') + '>' + p + '</section>').join(''));
-    const topics = [...root.querySelectorAll('[data-topic]')];
-    const sections = [...root.querySelectorAll('.il-panel')];
-    topics.forEach((b,i) => b.onclick = () => {
-      topics.forEach((item,j) => item.setAttribute('aria-pressed',String(i === j)));
-      sections.forEach((s,j) => s.hidden = i !== j);
+    const clue = i => '<span class="il-suspect">' + ['Instituto Nacional de Produtividade Digital','2026','78%'][i] + '</span>';
+    const hallucination = '<div class="il-kicker">Cenário didático fictício · Slide 25</div><h2>Que evidências sustentam essa afirmação?</h2><blockquote>“Segundo o ' + clue(0) + ', em seu relatório de ' + clue(1) + ', empresas que utilizam IA aumentam suas vendas em ' + clue(2) + ' nos primeiros 30 dias.”</blockquote>' +
+      '<div class="il-evidence-grid" data-stage="1" hidden>' + suspects.map(([term, prompt, explanation]) => '<details class="il-details"><summary><small>' + term + '</small>' + prompt + '</summary><div><p>' + explanation + '</p></div></details>').join('') + '</div>' +
+      documented(2,'Mata v. Avianca · 2023','Advogados citaram decisões judiciais inexistentes produzidas por IA. A corte federal dos EUA aplicou sanções em 22 de junho de 2023.',sourceLink('https://www.nhd.uscourts.gov/sites/default/files/pdf/Mata-v-Avianca-sanctions-order.PDF','Ler a decisão judicial (PDF)')) +
+      '<div class="il-didactic-note" data-stage="3" hidden><strong>Regra do Detetive</strong><p>Não encontrar uma fonte em uma pesquisa rápida não permite validar a afirmação. Sem evidências suficientes, não a utilize como fato.</p></div>';
+
+    const privacyPanel = '<div class="il-kicker">Privacidade e LGPD · Slide 26</div><h2>O que pode entrar em uma IA pública?</h2><p>Classifiquem os sete itens antes de revelar o gabarito.</p><ul class="il-ballot">' +
+      privacy.map(([letter,name,risk,reason]) => '<li><b>' + letter + '</b><span>' + name + '</span><div data-stage="1" hidden><strong>' + risk + '</strong><span>' + reason + '</span></div></li>').join('') + '</ul>' +
+      '<p class="il-reminder" data-stage="1" hidden>Remova dados e credenciais dos itens A, C, E e F. Para B, D e G, considere o contexto, a finalidade e a política institucional.</p>' +
+      '<div class="il-didactic-note" data-stage="2" hidden><strong>Mascarar ≠ anonimizar</strong><p>Cargo, data e valores ainda podem identificar a pessoa chamada de “Cliente A”. O exemplo com CPF e salários é fictício.</p></div>' +
+      documented(2,'Samsung · 2023','Após o envio de código interno ao ChatGPT, a empresa restringiu o uso de ferramentas de IA generativa em seus dispositivos.',sourceLink('https://techcrunch.com/2023/05/02/samsung-bans-use-of-generative-ai-tools-like-chatgpt-after-april-internal-data-leak/','Samsung · reportagem aberta') + sourceLink('https://news.bloomberglaw.com/tech-and-telecom-law/samsung-bans-staffs-ai-use-after-spotting-chatgpt-data-leak-2','Samsung · prévia Bloomberg') + sourceLink('https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm','LGPD · arts. 5º e 6º') + sourceLink('https://www.gov.br/anpd/pt-br','Portal da ANPD'));
+
+    const bias = '<div class="il-kicker">Vieses · Slide 27</div><h2>Como um modelo pode reproduzir vieses?</h2><ol class="il-flow" data-stage="1" hidden>' +
+      ['Dados históricos desiguais','Treinamento do modelo','Possível reprodução de vieses','Revisão humana'].map((label,i) => '<li style="--il-step:' + i + '"><b>' + (i+1) + '</b>' + label + '</li>').join('') + '</ol>' +
+      documented(2,'Amazon · 2018','Uma ferramenta experimental de seleção penalizava referências a mulheres em currículos. A empresa abandonou o projeto.',sourceLink('https://www.theguardian.com/technology/2018/oct/10/amazon-hiring-ai-gender-bias-recruiting-engine','Ler a reportagem da Reuters')) +
+      '<section class="il-didactic-note" data-stage="3" hidden><strong>Mini-investigação · 2 min</strong><p>“Descreva um dia de trabalho em liderança executiva e em enfermagem.” Que suposições apareceram? Uma única resposta neutra não explica a causa nem comprova ausência de vieses.</p><details class="il-details"><summary>Usar um exemplo pronto</summary><div><p>Exemplo fictício: “O executivo prepara a estratégia enquanto a enfermeira acolhe a família.” Que informação sustentaria a escolha do gênero? Reescrevam com responsabilidades e competências observáveis.</p></div></details></section>';
+    const ethics = '<div class="il-kicker">Ética e autoria · Slide 28</div><h2>O que conferir antes de publicar?</h2><p>Pense em uma imagem que sua equipe quer usar num anúncio.</p><ol class="il-checks">' +
+      '<li data-stage="1" hidden><strong>Direitos autorais e licenças</strong><span>Identifique as obras de terceiros e confira se a licença permite o uso pretendido.</span>' + sourceLink('https://www.planalto.gov.br/ccivil_03/leis/l9610.htm','Lei de Direitos Autorais') + '</li>' +
+      '<li data-stage="2" hidden><strong>Revisão e responsabilidade</strong><span>Confira as informações e decida como indicar a participação da IA.</span>' + sourceLink('https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research','Guia da UNESCO') + '</li>' +
+      '<li data-stage="3" hidden><strong>Política institucional</strong><span>Verifique quais ferramentas, contas e tipos de informação a organização autoriza.</span></li></ol>';
+    const topics = [
+      ['Alucinações', hallucination, ['Destacar as pistas','Revelar o caso documentado','Revelar a regra do Detetive']],
+      ['Privacidade', privacyPanel, ['Revelar a classificação','Revelar o caso e a base legal']],
+      ['Vieses', bias, ['Revelar o fluxograma','Revelar o caso documentado','Abrir a mini-investigação']],
+      ['Ética e autoria', ethics, ['Revelar o primeiro pilar','Revelar o segundo pilar','Revelar o terceiro pilar']]
+    ];
+    root.innerHTML = activityShell('Detetive Digital','Nível 04 · Slides 24 a 28','./assets/nivel-04.webp?v=58a5d36255c2',
+      '<details class="il-details"><summary>Revelar o lema do Detetive</summary><div>Bem escrito não significa verdadeiro — e rápido não significa seguro.</div></details>',
+      '<div class="il-choices" aria-label="Temas da investigação">' + topics.map(([topic], i) => '<button type="button" class="il-chip" aria-pressed="' + (i === 0) + '" aria-controls="il-topic-' + i + '" data-topic="' + i + '">' + topic + '</button>').join('') + '</div>' +
+      topics.map(([,content], i) => '<section class="il-case il-panel" id="il-topic-' + i + '"' + (i ? ' hidden' : '') + '>' + content + projectionControls() + '</section>').join(''));
+    const buttons = [...root.querySelectorAll('[data-topic]')];
+    const panels = [...root.querySelectorAll('.il-panel')];
+    topics.forEach((topic, i) => {
+      const panel = panels[i];
+      panel.querySelector('h2').after(panel.querySelector('.il-projection-controls'));
+      wireProjection(panel, topic[2]);
     });
-    root.querySelectorAll('[data-toggle-answer]').forEach(b => b.onclick = () => {
-      const answer = root.querySelector('#' + b.dataset.toggleAnswer);
-      answer.hidden = !answer.hidden;
-      b.setAttribute('aria-expanded',String(!answer.hidden));
+    buttons.forEach((button,i) => button.onclick = () => {
+      buttons.forEach((other,j) => other.setAttribute('aria-pressed',String(i === j)));
+      panels.forEach((panel,j) => {panel.hidden = i !== j;});
     });
   }
 
   const missions = [
-    {title:'Vazamento de informações', theme:'Privacidade', diagnosis:'O pedido mistura identificadores de cliente, informação de saúde e ameaça de negativação. Remova os dados e a ameaça. A negociação deve usar tom respeitoso.',
+    {title:'Vazamento de informações', theme:'Privacidade', diagnosis:'Remover identificadores e dados de saúde. Redigir uma mensagem cordial com foco na negociação e retirar a ameaça de negativação.',
       ctfr:['Você apoia o atendimento de uma empresa fictícia que quer conversar sobre um pagamento pendente.','Convide a pessoa a conhecer os canais de negociação.','Escreva uma mensagem curta de WhatsApp, com saudação e convite para conversar.','Use tom cordial. Omita nomes, valores, documentos e dados de saúde. Não faça ameaças nem prometa condições.'],
       verify:'Leia a mensagem como destinatário. Ela preserva a privacidade, convida à negociação e evita expor ou constranger alguém?'},
-    {title:'Informação fantasma', theme:'Alucinação', diagnosis:'A resposta inventou lei, garantia de três anos e troca em até 24 horas. O prompt inicial não fornecia política comercial nem limitava as promessas.',
+    {title:'Informação fantasma', theme:'Alucinação', diagnosis:'Informar os 12 meses da garantia do fabricante previstos na política simulada. Preservar os direitos legais e conferir cada condição. A resposta problemática inventou uma lei, garantia de três anos e troca em 24 horas.',
       ctfr:['Na loja fictícia, a política simulada prevê 12 meses de garantia do fabricante, sem prejuízo dos direitos legais do consumidor. A orientação deve encaminhar para canais oficiais de assistência.','Explique ao cliente como obter orientação sobre a garantia do notebook.','Escreva um e-mail breve, com assunto e até dois parágrafos.','Use apenas a política informada. Não invente leis, links, prazos de atendimento ou condições de troca. Peça informação se faltar um canal de contato.'],
       verify:'Compare cada prazo e condição com a política simulada. Antes de qualquer uso real, confirme a política vigente e o canal oficial.'},
-    {title:'Algoritmo injusto', theme:'Viés e ética', diagnosis:'O anúncio associa tecnologia a homens jovens e restringe as candidaturas por gênero e idade. Avalie as competências necessárias para as atividades da vaga.',
+    {title:'Algoritmo injusto', theme:'Viés e ética', diagnosis:'Retirar os filtros de gênero e idade. Descrever as competências da vaga em linguagem inclusiva: atendimento, trabalho em equipe e interesse por tecnologia.',
       ctfr:['Uma loja fictícia de eletrônicos busca uma pessoa para atendimento e vendas.','Redija um anúncio com atividades e competências de atendimento, trabalho em equipe e interesse por tecnologia.','Use título, breve descrição, lista de atividades e lista de requisitos.','Use linguagem inclusiva. Exclua filtros de gênero e idade e estereótipos. Não invente benefícios ou salário.'],
       verify:'Confira se cada requisito se relaciona a uma tarefa da vaga e se a linguagem acolhe candidaturas de perfis diversos.'}
   ];
 
   function guardians(root) {
-    const cards = missions.map((m,i) => '<details class="il-mission"><summary><span class="il-mission-number">0' + (i+1) + '</span><span><small>Missão 0' + (i+1) + ' · ' + m.theme + '</small><strong>' + m.title + '</strong></span>' + icon('chevron') + '</summary>' +
+    const cards = missions.map((m,i) => '<details class="il-mission"><summary><span class="il-mission-number">0' + (i+1) + '</span><span><small>Gabarito da missão 0' + (i+1) + ' · ' + m.theme + '</small><strong>' + m.title + '</strong></span>' + icon('chevron') + '</summary>' +
       '<div class="il-mission-body"><h2>O que corrigir</h2><p>' + m.diagnosis + '</p><details class="il-details"><summary>Revelar um prompt CTFR possível</summary><dl class="il-ctfr">' +
       ['Contexto','Tarefa','Formato','Restrições'].map((t,j) => '<div><dt>' + t + '</dt><dd>' + m.ctfr[j] + '</dd></div>').join('') + '</dl></details>' +
       '<details class="il-details"><summary>Revelar a conferência final</summary><div><p>' + m.verify + '</p></div></details></div></details>').join('');
-    root.innerHTML = shell('Guardiões da IA','Slide 36','<div class="il-missions">' + cards + '</div><p class="il-footnote">A Central organiza a projeção. Qualquer pessoa com o endereço pode abrir os gabaritos.</p>',
-      'Ouça a solução da dupla antes de abrir cada missão. Revele o comentário, o exemplo de prompt e a conferência no ritmo da turma.');
+    root.innerHTML = activityShell('Guardiões da IA','Nível 05 · Slides 30 a 36','./assets/nivel-05.webp?v=17807ff75617',
+      '<a class="il-btn il-outline" href="#/timer/27?a=35">' + icon('clock') + 'Cronômetro da dupla · 27 min</a>',
+      '<div class="il-section-head"><h2>O que sua dupla corrigiu?</h2></div><p class="il-mission-intro">No slide 36, ouça a solução e uma justificativa da dupla. Abra somente o gabarito da missão apresentada.</p><div class="il-missions">' + cards + '</div>' +
+      '<details class="il-details il-lab-guide"><summary>Conduzir o trabalho em duplas</summary><div><p>Preencham os nomes no Bloco 05 do Word. Testem na IA somente o prompt corrigido com dados fictícios. Por missão, entreguem as quatro justificativas do checklist, a reescrita em CTFR e a conferência humana.</p><p>Justifiquem cada “Sim”, “Não” ou “Não se aplica”. Se faltar uma checagem necessária, registrem a pendência e retomem a verificação após o teste.</p><p>Aos 13min30s, anuncie: “Hora de inverter os papéis!” Para iniciantes, priorize duas missões e resolva a terceira com a turma antes da revelação.</p></div></details>');
   }
 
   function render(page,root) {
@@ -708,6 +954,27 @@
           url: "https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research"
         }
       ]
+    },
+    {
+      name: "Fotografias da galeria",
+      items: [
+        {
+          title: "Potter wheel",
+          source: "Chandan Singh · 2009",
+          summary: "Fotografia da peça de barro no torno. A aula usa um recorte da imagem original.",
+          link: "Consultar a fotografia e a autoria",
+          url: "https://commons.wikimedia.org/wiki/File:Potter_wheel_(4268605790).jpg",
+          license: ["CC BY 2.0", "https://creativecommons.org/licenses/by/2.0/"]
+        },
+        {
+          title: "Oranges of Saúde flea market, São Paulo, Brazil",
+          source: "Wilfredor · 2017",
+          summary: "Fotografia de laranjas na feira da Saúde, em São Paulo. O recorte usado na aula mantém a licença da fotografia.",
+          link: "Consultar a fotografia e a autoria",
+          url: "https://commons.wikimedia.org/wiki/File:Oranges_of_Sa%C3%BAde_flea_market,_S%C3%A3o_Paulo,_Brazil.jpg",
+          license: ["CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]
+        }
+      ]
     }
   ];
 
@@ -717,7 +984,7 @@
     panel.innerHTML = `
       <header class="ref-header">
         <h1>Referências verificadas</h1>
-        <p>Consulte as fontes dos casos e as orientações usadas na aula. Links conferidos em 27 de novembro de 2026.</p>
+        <p>Consulte as fontes dos estudos de caso, as orientações e os créditos das fotografias usadas na aula.</p>
       </header>
       ${groups.map((group) => `
         <section class="ref-group">
@@ -729,6 +996,7 @@
                 <h3>${item.title}</h3>
                 <p>${item.summary}</p>
                 <a class="ref-link" href="${item.url}" rel="noreferrer">${item.link} <span aria-hidden="true">↗</span></a>
+                ${item.license ? `<a class="ref-license" href="${item.license[1]}" rel="noreferrer">Licença ${item.license[0]}</a>` : ""}
               </li>
             `).join("")}
           </ul>
@@ -763,22 +1031,18 @@
     view.innerHTML=`
       <section class="cover" aria-labelledby="cover-title">
         <div class="cover-art" aria-hidden="true"></div>
-        <div class="cover-body"><p class="cover-meta"><span aria-hidden="true"></span>Senac Arapongas <i aria-hidden="true">/</i> Aula 01</p>
+        <div class="cover-body"><p class="cover-meta"><span aria-hidden="true"></span>Senac Arapongas <i aria-hidden="true">/</i> Aula 01 · 4 horas</p>
           <h1 id="cover-title">Descomplicando a<br><em>Inteligência Artificial</em></h1>
-          <p class="cover-intro">Sua jornada de descoberta, construção e uso responsável da IA.</p>
-          <a class="cover-cta" href="#/prompt">${icon('prompt')} Abrir Prompt Lab</a>
+          <p class="cover-intro">Como usar a IA no trabalho e na vida</p>
+          <div class="cover-actions"><a class="cover-cta" href="#/prompt">${icon('prompt')} Abrir Prompt Lab</a>
+          <a class="cover-library" href="#/biblioteca">${icon('book')} Biblioteca de comandos</a></div>
         </div>
       </section>
-      <section class="module-section" aria-labelledby="modules-title">
-        <div class="module-heading"><span class="section-kicker"><i></i> Apoio opcional</span><h2 id="modules-title">Área do Aluno</h2></div>
-        <div class="home-cards">
-          <a class="home-card" href="#/prompt"><div class="card-top"><span class="feature-icon">${icon('prompt')}</span><div class="ctfr-motif" aria-hidden="true"><b>C</b><b>T</b><b>F</b><b>R</b></div></div>
-            <h3>Prompt Lab</h3><p>Monte seu comando com contexto, tarefa, formato e restrições.</p><span class="card-action">Montar um prompt</span></a>
-          <a class="home-card library-card" href="#/biblioteca"><div class="card-top"><span class="feature-icon">${icon('book')}</span><div class="library-motif" aria-hidden="true"><i></i><i></i><i></i></div></div>
-            <h3>Biblioteca de Copiar Rápido</h3><p>Copie as demandas do desafio e os comandos de refinamento de cada trilha.</p><span class="card-action">Explorar a biblioteca</span></a>
-        </div>
-      </section>
-      <aside class="paper-note">${icon('paper')}<p><strong>Caderno Digital no Word.</strong> Abra o arquivo recebido pelo Net Monitor e salve suas atividades nele. <a href="./Checklist_Bolso_10_Criterios.pdf" download="Checklist_Bolso_10_Criterios.pdf">Baixar o checklist de bolso (PDF)</a></p></aside>`;
+      <aside class="notebook"><span class="notebook-icon">${icon('paper')}</span>
+        <div><strong>Caderno Digital no Word</strong><p>Abra o arquivo recebido pelo Net Monitor e salve sua cópia como <b>Caderno_IA_SeuNome.docx</b>.</p></div>
+        <a href="./Checklist_Bolso_10_Criterios.pdf" download="Checklist_Bolso_10_Criterios.pdf">Baixar o checklist de bolso (PDF)</a>
+      </aside>
+      ${window.Student.journey()}`;
   }
   function render(focus) {
     if (typeof window.Instructor?.cleanup==='function') window.Instructor.cleanup();
