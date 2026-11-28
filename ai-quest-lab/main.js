@@ -72,7 +72,7 @@
       rounds: [
         'Destaque os três principais benefícios do serviço.',
         'Acrescente uma chamada para ação, sem inventar preços ou prazos.',
-        'Crie uma versão resumida para WhatsApp, preservando as condições originais.'
+        'Mantenha a proposta de uma página e entregue, como peça adicional, um resumo para WhatsApp com as mesmas condições.'
       ]
     }
   };
@@ -115,12 +115,13 @@
     return copied;
   }
 
-  async function copyWithFeedback(button, value, region) {
+  async function copyWithFeedback(button, value, region, currentValue) {
     if (!value) return;
     const copied = await copyText(value);
-    if (!button.isConnected) return;
+    if (!button.isConnected || (currentValue && currentValue() !== value)) return;
     if (copied) {
       region.textContent = 'Texto copiado.';
+      if (currentValue) return;
       if (button._restoreTimer) clearTimeout(button._restoreTimer);
       if (!button.dataset.originalLabel) button.dataset.originalLabel = button.innerHTML;
       button.innerHTML = icon('check') + 'Copiado!';
@@ -230,7 +231,7 @@
       feedback.textContent = 'Campos limpos.';
       inputs[0].focus();
     });
-    copy.addEventListener('click', () => copyWithFeedback(copy, composed(), feedback));
+    copy.addEventListener('click', () => copyWithFeedback(copy, composed(), feedback, composed));
     loadInputs();
   }
 
@@ -270,7 +271,7 @@
       } else {
         const track = tracks[group];
         title = track.title;
-        guide = 'Slide 19 · Em uma conversa nova, construa seu comando inicial com CTFR. Slide 20 · Faça os três refinamentos na mesma conversa.';
+        guide = 'Slide 19 · Monte o comando inicial com CTFR em uma conversa nova. Slide 20 · Faça os três refinamentos nessa conversa. Após cada rodada, confira se a resposta mantém as restrições do comando.';
         values.start = track.start;
         cards = libraryCard('Slide 19', 'Comando inicial', track.start, track.icon, 'start');
         cards += track.rounds.map((content, i) => {
@@ -574,7 +575,7 @@
       '<div class="il-documented"><div class="il-kicker">' + icon('book') + ' Caso Real Documentado</div><h3>Mata v. Avianca, Inc. · 2023</h3><p>Advogados apresentaram decisões judiciais inexistentes citadas por uma IA. Em 22 de junho de 2023, a Justiça federal dos EUA aplicou sanções.</p><a href="#/referencias">Consultar a decisão judicial ' + icon('arrow') + '</a></div>';
     const privacyPanel = '<div class="il-case"><div class="il-kicker">Privacidade e LGPD</div><h2>O que pode entrar em uma IA pública?</h2><p>Discuta cada item com a turma. Selecione-o para revelar o gabarito.</p><div class="il-privacy">' +
       privacy.map(([letter,label,risk,reason]) => '<div><button type="button" class="il-data" data-toggle-answer="il-data-' + letter + '" aria-expanded="false" aria-controls="il-data-' + letter + '"><b>[' + letter + ']</b>' + label + icon('chevron') + '</button><div class="il-explain" id="il-data-' + letter + '" hidden><strong>' + risk + '</strong><p>' + reason + '</p></div></div>').join('') +
-      '</div><p class="il-reminder"><strong>Mesmo com outro nome, uma pessoa pode ser reconhecida</strong> por combinações de cargo, data, empresa e valores. Use dados inteiramente fictícios.</p></div>' +
+      '</div><p class="il-reminder"><strong>Até o uso de dados genéricos depende do contexto e da política da instituição.</strong> Combinações de cargo, data, empresa e valores podem identificar uma pessoa. Use dados inteiramente fictícios no exercício.</p></div>' +
       '<div class="il-documented"><div class="il-kicker">' + icon('book') + ' Caso Real Documentado</div><h3>Samsung · 2023</h3><p>A empresa restringiu o uso de ferramentas de IA generativa após o envio de código interno a um serviço externo.</p><a href="#/referencias">Consultar fontes e LGPD ' + icon('arrow') + '</a></div>';
     const bias = '<div class="il-case"><div class="il-kicker">Vieses</div><h2>De onde vêm os estereótipos?</h2><p>Peça à IA que descreva um dia típico de quem trabalha em liderança executiva e em enfermagem, sem indicar gênero ou idade. Que suposições aparecem?</p><ol class="il-flow">' +
       ['Dados históricos desiguais','Treinamento do modelo','Risco de decisão enviesada','Revisão humana'].map((s,i) => '<li style="--il-step:' + i + '"><b>' + (i+1) + '</b>' + s + '</li>').join('') +
