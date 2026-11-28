@@ -778,7 +778,7 @@
             <h3>Biblioteca de Copiar Rápido</h3><p>Copie as demandas do desafio e os comandos de refinamento de cada trilha.</p><span class="card-action">Explorar a biblioteca</span></a>
         </div>
       </section>
-      <aside class="paper-note">${icon('paper')}<p><strong>Seu registro é no papel.</strong> Use o material impresso para o Diário de Bordo, a Batalha das IAs e as fichas dos Guardiões.</p></aside>`;
+      <aside class="paper-note">${icon('paper')}<p><strong>Caderno Digital no Word.</strong> Abra o arquivo recebido pelo Net Monitor e salve suas atividades nele. <a href="./Checklist_Bolso_10_Criterios.pdf" download="Checklist_Bolso_10_Criterios.pdf">Baixar o checklist de bolso (PDF)</a></p></aside>`;
   }
   function render(focus) {
     if (typeof window.Instructor?.cleanup==='function') window.Instructor.cleanup();
