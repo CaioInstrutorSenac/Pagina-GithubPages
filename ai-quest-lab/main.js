@@ -357,12 +357,20 @@
     const area = root.querySelector('.il-page');
     const btn = area.querySelector('[data-full]');
     if (!btn) return;
+    let backgroundOverflow = '';
     function update() {
       const active = document.fullscreenElement === area || area.classList.contains('il-overlay');
       btn.querySelector('span').textContent = active ? 'Sair da tela cheia' : 'Tela cheia';
       btn.setAttribute('aria-pressed',String(active));
     }
     function exitOverlay() {
+      if (area.classList.contains('il-overlay')) {
+        document.body.style.overflow = backgroundOverflow;
+        area.removeAttribute('role');
+        area.removeAttribute('aria-modal');
+        area.removeAttribute('aria-label');
+        btn.focus({preventScroll:true});
+      }
       area.classList.remove('il-overlay');
       update();
     }
@@ -373,18 +381,34 @@
         exitOverlay();
       } else {
         try { await area.requestFullscreen(); }
-        catch { area.classList.add('il-overlay'); }
+        catch {
+          backgroundOverflow = document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
+          area.classList.add('il-overlay');
+          area.setAttribute('role','dialog');
+          area.setAttribute('aria-modal','true');
+          area.setAttribute('aria-label',area.querySelector('h1').textContent);
+          btn.focus({preventScroll:true});
+        }
       }
       update();
     };
-    function handleEscape(e) {
-      if (e.key === 'Escape' && area.classList.contains('il-overlay')) exitOverlay();
+    function handleKeys(e) {
+      if (!area.classList.contains('il-overlay')) return;
+      if (e.key === 'Escape') exitOverlay();
+      if (e.key !== 'Tab') return;
+      const stops = [...area.querySelectorAll('a[href],button:not(:disabled),summary')].filter(el => el.getClientRects().length);
+      const edge = e.shiftKey ? stops[0] : stops[stops.length - 1];
+      if (document.activeElement === edge) {
+        e.preventDefault();
+        (e.shiftKey ? stops[stops.length - 1] : stops[0]).focus();
+      }
     }
     document.addEventListener('fullscreenchange',update);
-    document.addEventListener('keydown',handleEscape);
+    document.addEventListener('keydown',handleKeys);
     dispose.push(() => {
       document.removeEventListener('fullscreenchange',update);
-      document.removeEventListener('keydown',handleEscape);
+      document.removeEventListener('keydown',handleKeys);
       if (document.fullscreenElement === area) document.exitFullscreen().catch(() => {});
       exitOverlay();
     });
